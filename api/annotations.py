@@ -1,0 +1,3 @@
+from typing import TypeVar
+
+GOOGLE_SPREADSHEET_INSTANCE = TypeVar('GOOGLE_SPREADSHEET_INSTANCE')
