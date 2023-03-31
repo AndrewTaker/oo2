@@ -94,22 +94,23 @@ def sheet_update(
 def sheet_get(
     sheet: GOOGLE_SPREADSHEET_INSTANCE,
     spreadsheetId: str, range: str
-) -> None:
+) -> list:
     """
     Functional version of google sheets api method.
     Made to free up code space.
     Original method: 'service.spreadsheets().values().get'
     """
-    sheet.values().get(
+    data = sheet.values().get(
         spreadsheetId=spreadsheetId,
         range=range,
     ).execute()
+    return data
 
 
 def sheet_batch_update(
     sheet: GOOGLE_SPREADSHEET_INSTANCE,
     spreadsheetId: str,
-    body: Dict[Union[str, int]]
+    body: Dict
 ) -> None:
     """
     Functional version of google sheets api method.
@@ -211,28 +212,25 @@ def body_for_values_batch_update(
 
 def main():
     credentials = apply_credentials()
-    givc = login_givc()
+    givc = login_givc(GIVC_LOGIN, GIVC_PASSWORD)
     sheet = initialize_sheet_class(credentials)
 
-    organisation_codes = sheet_get(
-        spreadsheetId=SPREADSHEET_ID,
-        range=CODES_RANGE,
-    )
+    organisation_codes = sheet_get(sheet, SPREADSHEET_ID, CODES_RANGE)
     raw_codes = organisation_codes.get('values', [])
     codes = [i for j in raw_codes for i in j]
 
     while True:
         current_time = datetime.now().time()
         if current_time > START and current_time < END:
-            data = get_givc_status_and_upload_date(givc, codes[:5])
+            data = get_givc_status_and_upload_date(givc, codes)
             statuses = [status[0] for status in data.values()]
             dates = [date[1] for date in data.values()]
 
             status_body = body_for_values_batch_update(statuses, STATUS_RANGE)
             date_body = body_for_values_batch_update(dates, DATE_RANGE)
 
-            sheet_batch_update(spreadsheetId=SPREADSHEET_ID, body=status_body)
-            sheet_batch_update(spreadsheetId=SPREADSHEET_ID, body=date_body)
+            sheet_batch_update(sheet, SPREADSHEET_ID, status_body)
+            sheet_batch_update(sheet, SPREADSHEET_ID, date_body)
             sheet_update(
                 sheet,
                 SPREADSHEET_ID,
